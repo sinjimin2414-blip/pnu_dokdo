@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독도: 역사와 진실의 디지털 전시관</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #F9FAFB;
+            color: #1F2937;
+        }
+        
+        .timeline-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: #E5E7EB;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background: #9CA3AF;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb:hover {
+            background: #6B7280;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .nav-item.active {
+            border-bottom: 3px solid #1E3A8A;
+            color: #1E3A8A;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Left: Logo -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="renderSection('home')">
+                        <div class="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold mr-3">독</div>
+                        <h1 class="text-xl font-bold text-gray-900 tracking-tight hidden sm:block">독도 전시관</h1>
+                    </div>
+                </div>
+
+                <!-- Right: Navigation & Home Button -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <nav class="flex space-x-6">
+                        <button onclick="renderSection('geography')" id="nav-geography" class="nav-item text-gray-500 hover:text-gray-900 px-1 py-2 text-sm font-medium transition-colors">지리적 특성</button>
+                        <button onclick="renderSection('history')" id="nav-history" class="nav-item text-gray-500 hover:text-gray-900 px-1 py-2 text-sm font-medium transition-colors">역사의 증거</button>
+                        <button onclick="renderSection('evidence')" id="nav-evidence" class="nav-item text-gray-500 hover:text-gray-900 px-1 py-2 text-sm font-medium transition-colors">핵심 문헌</button>
+                        <button onclick="renderSection('conflict')" id="nav-conflict" class="nav-item text-gray-500 hover:text-gray-900 px-1 py-2 text-sm font-medium transition-colors">갈등과 화해</button>
+                    </nav>
+                    <!-- New Home Button at Right Side -->
+                    <a href="index.html" class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-bold rounded-full text-white bg-blue-900 hover:bg-blue-800 transition-all shadow-sm">
+                        <span class="mr-1.5 text-base">🏠</span> HOME
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <div class="md:hidden flex items-center">
+                    <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-900 focus:outline-none">
+                        <span class="text-2xl">☰</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="index.html" class="block w-full text-left text-blue-900 bg-blue-50 px-3 py-2 rounded-md text-base font-bold">🏠 홈으로 가기 (HOME)</a>
+                <button onclick="renderSection('geography'); toggleMobileMenu()" class="block w-full text-left text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium">지리적 특성</button>
+                <button onclick="renderSection('history'); toggleMobileMenu()" class="block w-full text-left text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium">역사의 증거</button>
+                <button onclick="renderSection('evidence'); toggleMobileMenu()" class="block w-full text-left text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium">핵심 문헌</button>
+                <button onclick="renderSection('conflict'); toggleMobileMenu()" class="block w-full text-left text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium">갈등과 화해</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="app-content" class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <!-- Content injected by JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0 text-center md:text-left">
+                    <h3 class="text-lg font-bold text-white">대한민국 독도</h3>
+                    <p class="text-sm mt-1">경상북도 울릉군 울릉읍 독도리 1~96</p>
+                </div>
+                <div class="text-sm text-gray-400 text-center md:text-right">
+                    <p>본 자료는 제공된 '독도 바로 알기' 보고서를 기반으로 제작되었습니다.</p>
+                    <p class="mt-1">&copy; 2024 Dokdo Interactive Report</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STORE ---
+        const appData = {
+            geography: {
+                intro: "독도는 동해의 끝자락, 대한민국 최동단에 위치한 외로운 섬이 아닙니다. 동도와 서도를 비롯한 89개의 바위섬으로 이루어진 독도는 경제적, 지질학적, 전략적으로 매우 중요한 가치를 지닌 우리의 고유 영토입니다.",
+                location: {
+                    address: "경상북도 울릉군 울릉읍 독도리 1~96번지",
+                    zip: "799-805",
+                    details: "동도(해발 98.6m)와 서도(해발 168.5m) 및 89개 부속도서"
+                },
+                values: [
+                    { title: "경제적 가치", icon: "🐟", desc: "황금어장(조경수역) 및 메탄하이드레이트(차세대 에너지) 매장 가능성" },
+                    { title: "지질학적 가치", icon: "🌋", desc: "해저 화산 활동의 증거를 간직한 '지질학의 보고'" },
+                    { title: "전략적 가치", icon: "⚓", desc: "동해의 기상 및 통신 거점이자 군사·안보적 요충지" }
+                ],
+                distances: {
+                    labels: ['울릉도 (한국)', '오키섬 (일본)'],
+                    data: [87.4, 157.5],
+                    unit: 'km'
+                }
+            },
+            history: {
+                intro: "독도의 역사는 1500년 전 신라 시대로 거슬러 올라갑니다. 수많은 고문헌과 지도는 독도가 한국의 영토임을 명확히 증명하고 있습니다. 시간의 흐름을 따라 독도 영유권의 역사를 확인해 보세요.",
+                events: [
+                    { year: "512", title: "우산국 복속", desc: "신라 지증왕 13년, 이사부가 우산국(울릉도·독도)을 복속시켜 우리 역사에 편입됨." },
+                    { year: "1454", title: "세종실록지리지", desc: "우산(독도)과 무릉(울릉도)이 강원도 울진현에 속하며, 맑은 날 서로 보인다고 기록함." },
+                    { year: "1667", title: "은주시청합기", desc: "일본 문헌. 일본의 서북쪽 경계를 오키섬으로 한정하여 독도를 제외함." },
+                    { year: "1693", title: "안용복 사건", desc: "안용복이 일본으로 건너가 울릉도와 독도가 조선 땅임을 확인받고 돌아옴." },
+                    { year: "1696", title: "도해 금지령", desc: "일본 막부가 울릉도·독도 지역에 일본인의 출입을 금지함." },
+                    { year: "1785", title: "삼국접양지도", desc: "일본 하야시 시헤이가 제작한 지도. 독도를 조선과 같은 황색으로 칠해 조선 영토임을 표시." },
+                    { year: "1877", title: "태정관 지령", desc: "일본 최고 행정기관이 '울릉도와 독도는 일본과 관계없다'는 지령을 내림." },
+                    { year: "1900", title: "칙령 제41호", desc: "대한제국 고종 황제가 독도(석도)를 울릉군의 관할로 명시하고 공포함." },
+                    { year: "1905", title: "시마네현 고시", desc: "일본이 러일전쟁 중 독도를 불법적으로 자국 영토에 편입하려 시도함 (무주지 선점 주장)." },
+                    { year: "1946", title: "SCAPIN 제677호", desc: "연합국 최고사령부가 독도를 일본 통치 구역에서 제외한다고 선언." },
+                    { year: "1981", title: "최초 주민 등록", desc: "고(故) 최종덕 씨가 독도로 주민등록을 이전하여 최초의 거주자가 됨." }
+                ]
+            },
+            evidence: {
+                intro: "역사적 사료는 거짓말을 하지 않습니다. 한국의 기록뿐만 아니라, 일본의 고문헌과 지도조차도 독도가 한국의 땅임을 가리키고 있습니다. 주요 핵심 사료들을 통해 진실을 확인해 보세요.",
+                docs: [
+                    { title: "세종실록지리지 (1454)", type: "한국 문헌", content: "강원도 울진현조에 '우산(독도), 무릉(울릉도)... 두 섬이 서로 거리가 멀지 아니하여 날씨가 맑으면 바라볼 수 있다'고 기록되어 있습니다. 이는 독도에 대한 지리적 인식을 명확히 보여줍니다." },
+                    { title: "은주시청합기 (1667)", type: "일본 문헌", content: "일본 이즈모 지방의 관리가 쓴 보고서로, '일본의 서북쪽 경계는 오키섬으로 한다'고 기록했습니다. 즉, 울릉도와 독도는 일본 영토 밖(조선 땅)임을 스스로 인정한 최초의 일본 문헌입니다." },
+                    { title: "태정관 지령 (1877)", type: "일본 공문서", content: "메이지 시대 일본의 최고 행정기관인 태정관이 내무성에 내린 지시로, '죽도(울릉도) 외 1도(독도)는 본방(일본)과 관계없음을 명심할 것'이라고 명확히 결론 내렸습니다." },
+                    { title: "대한제국 칙령 제41호 (1900)", type: "한국 법령", content: "고종 황제가 울릉도를 울도군으로 승격시키고, 관할 구역에 '석도(독도)'를 포함시킨 근대적 법령입니다. 이는 일본의 1905년 불법 편입 시도보다 5년이나 앞선 주권 행사입니다." },
+                    { title: "삼국접양지도 (1785)", type: "일본 지도", content: "일본의 실학자 하야시 시헤이가 그린 지도로, 울릉도와 독도를 조선 본토와 같은 '황색'으로 칠하고, 옆에 '조선의 것'이라고 문자로 명기하였습니다." }
+                ]
+            },
+            conflict: {
+                intro: "현재 일본은 '다케시마의 날' 제정과 교과서 왜곡 등을 통해 부당한 영유권 주장을 계속하고 있습니다. 하지만 우리는 감정적 대응을 넘어, 논리적이고 평화적인 방법으로 진실을 알려야 합니다.",
+                surveyData: {
+                    labels: ['중요하다', '중요하지 않다'],
+                    data: [74, 26], 
+                    text: "한일 관계의 중요성에 대한 인식 (2013)"
+                }
+            }
+        };
+
+        // --- STATE & UTILS ---
+        let charts = {};
+
+        function init() {
+            renderSection('home');
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function renderSection(sectionId) {
+            const container = document.getElementById('app-content');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if(sectionId !== 'home') {
+                const navBtn = document.getElementById(`nav-${sectionId}`);
+                if(navBtn) navBtn.classList.add('active');
+            }
+
+            container.innerHTML = '';
+            container.className = "flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full fade-in";
+
+            switch(sectionId) {
+                case 'home': renderHome(container); break;
+                case 'geography': renderGeography(container); break;
+                case 'history': renderHistory(container); break;
+                case 'evidence': renderEvidence(container); break;
+                case 'conflict': renderConflict(container); break;
+            }
+        }
+
+        function renderHome(container) {
+            container.innerHTML = `
+                <div class="text-center py-12 md:py-20">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">대한민국의 아름다운 영토, <span class="text-blue-900">독도</span></h2>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
+                        독도는 단순한 섬이 아닙니다. 512년 신라의 우산국 복속 이래<br> 
+                        한 번도 한국의 영토가 아닌 적이 없었던 역사의 증거입니다.<br>
+                        지리적, 역사적, 국제법적으로 명백한 우리의 땅, 독도를 만나보세요.
+                    </p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button onclick="renderSection('geography')" class="bg-blue-900 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-blue-800 transition transform hover:-translate-y-1 font-bold text-lg">
+                            독도 탐험 시작하기
+                        </button>
+                        <button onclick="renderSection('history')" class="bg-white text-blue-900 border-2 border-blue-900 px-8 py-3 rounded-lg shadow hover:bg-blue-50 transition transform hover:-translate-y-1 font-bold text-lg">
+                            역사 연대기 보기
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                    <div class="bg-white p-6 rounded-xl shadow-md text-center border-t-4 border-blue-900">
+                        <div class="text-3xl mb-3">📍</div>
+                        <h3 class="text-xl font-bold mb-2">위치</h3>
+                        <p class="text-gray-600">울릉도 동남쪽 87.4km</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md text-center border-t-4 border-blue-900">
+                        <div class="text-3xl mb-3">🏝️</div>
+                        <h3 class="text-xl font-bold mb-2">구성</h3>
+                        <p class="text-gray-600">동도, 서도 및 89개 부속도서</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md text-center border-t-4 border-blue-900">
+                        <div class="text-3xl mb-3">👮</div>
+                        <h3 class="text-xl font-bold mb-2">수호</h3>
+                        <p class="text-gray-600">독도경비대 상주 및 국민 거주</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGeography(container) {
+            const data = appData.geography;
+            container.innerHTML = `
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">지리적 특성과 가치</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed border-l-4 border-blue-500 pl-4 bg-white py-2 rounded-r-lg shadow-sm">${data.intro}</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-xl font-bold text-blue-900 mb-3 border-b pb-2">기본 정보</h3>
+                            <ul class="space-y-3 text-gray-700">
+                                <li><span class="font-semibold w-24 inline-block">주소:</span> ${data.location.address}</li>
+                                <li><span class="font-semibold w-24 inline-block">우편번호:</span> ${data.location.zip}</li>
+                                <li><span class="font-semibold w-24 inline-block">구성:</span> ${data.location.details}</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-xl font-bold text-blue-900 mb-4 border-b pb-2">독도의 3대 가치</h3>
+                            <div class="grid grid-cols-1 gap-4">
+                                ${data.values.map(val => `
+                                    <div class="flex items-start p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
+                                        <span class="text-2xl mr-3">${val.icon}</span>
+                                        <div>
+                                            <h4 class="font-bold text-gray-900">${val.title}</h4>
+                                            <p class="text-sm text-gray-600 mt-1">${val.desc}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 flex flex-col justify-center">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">누가 더 가까울까요?</h3>
+                        <p class="text-sm text-gray-500 mb-6">독도와의 최단 거리 비교 (단위: km)</p>
+                        <div class="chart-container"><canvas id="distanceChart"></canvas></div>
+                        <div class="mt-4 text-sm text-center text-gray-600 bg-blue-50 p-3 rounded">
+                            <p class="font-bold">📢 결론:</p> 독도는 일본보다 한국에서 <span class="text-blue-700 font-bold">약 70km 더 가깝습니다.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            initDistanceChart();
+        }
+
+        function renderHistory(container) {
+            const data = appData.history;
+            container.innerHTML = `
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">역사의 흐름 속 독도</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed border-l-4 border-blue-500 pl-4 bg-white py-2 rounded-r-lg shadow-sm">${data.intro}</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div id="history-detail-view" class="bg-slate-800 text-white p-8 md:p-12 transition-all duration-500 min-h-[250px] flex flex-col justify-center"></div>
+                    <div class="bg-gray-50 p-6 border-t border-gray-200">
+                        <div class="flex overflow-x-auto pb-4 space-x-2 timeline-scroll">
+                            ${data.events.map((evt, index) => `
+                                <div class="flex-shrink-0 w-64 p-4 cursor-pointer group" onclick="showHistoryDetail(${index})">
+                                    <div class="flex flex-col h-full border-l-4 border-gray-300 group-hover:border-blue-500 pl-4 transition-all duration-300">
+                                        <span class="text-2xl font-black text-gray-400 group-hover:text-blue-600">${evt.year}</span>
+                                        <h4 class="font-bold text-gray-800 text-lg mt-1 group-hover:text-blue-900">${evt.title}</h4>
+                                        <p class="text-xs text-gray-500 mt-2 line-clamp-2">${evt.desc}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            showHistoryDetail(0);
+        }
+
+        function showHistoryDetail(index) {
+            const evt = appData.history.events[index];
+            const view = document.getElementById('history-detail-view');
+            view.style.opacity = '0';
+            setTimeout(() => {
+                view.innerHTML = `
+                    <div class="flex items-baseline space-x-4 mb-4">
+                        <span class="text-5xl md:text-6xl font-black text-blue-400 opacity-80">${evt.year}</span>
+                        <h3 class="text-2xl md:text-3xl font-bold tracking-wide">${evt.title}</h3>
+                    </div>
+                    <p class="text-lg md:text-xl text-gray-300 leading-relaxed max-w-4xl">${evt.desc}</p>
+                `;
+                view.style.opacity = '1';
+            }, 150);
+        }
+
+        function renderEvidence(container) {
+            const data = appData.evidence;
+            container.innerHTML = `
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">문헌이 말하는 진실</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed border-l-4 border-blue-500 pl-4 bg-white py-2 rounded-r-lg shadow-sm">${data.intro}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${data.docs.map(doc => `
+                        <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border border-gray-100 flex flex-col h-full">
+                            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded self-start mb-4">${doc.type}</span>
+                            <h3 class="text-xl font-bold text-gray-800 mb-3">${doc.title}</h3>
+                            <p class="text-gray-600 text-sm leading-relaxed">${doc.content}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderConflict(container) {
+            const data = appData.conflict;
+            container.innerHTML = `
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">갈등을 넘어 평화로</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed border-l-4 border-blue-500 pl-4 bg-white py-2 rounded-r-lg shadow-sm">${data.intro}</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-8">
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-xl font-bold text-gray-900 mb-6 border-b pb-2">쟁점 분석</h3>
+                            <div class="flex flex-col md:flex-row gap-4">
+                                <div class="flex-1 bg-red-50 p-4 rounded-lg border border-red-100">
+                                    <h4 class="font-bold text-red-800 mb-2">❌ 일본의 주장</h4>
+                                    <p class="text-sm text-gray-700">1905년 시마네현 고시를 통한 무주지 선점 주장</p>
+                                </div>
+                                <div class="flex-1 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                    <h4 class="font-bold text-blue-800 mb-2">✅ 우리의 반박</h4>
+                                    <p class="text-sm text-gray-700">1900년 대한제국 칙령 제41호 등으로 이미 영유권 확립</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 flex flex-col">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">미래 인식</h3>
+                        <div class="chart-container flex-grow"><canvas id="opinionChart"></canvas></div>
+                    </div>
+                </div>
+            `;
+            initOpinionChart();
+        }
+
+        function initDistanceChart() {
+            const ctx = document.getElementById('distanceChart').getContext('2d');
+            if (charts.distance) charts.distance.destroy();
+            charts.distance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: appData.geography.distances.labels,
+                    datasets: [{
+                        label: '거리 (km)',
+                        data: appData.geography.distances.data,
+                        backgroundColor: ['rgba(30, 58, 138, 0.8)', 'rgba(156, 163, 175, 0.5)']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function initOpinionChart() {
+            const ctx = document.getElementById('opinionChart').getContext('2d');
+            if (charts.opinion) charts.opinion.destroy();
+            charts.opinion = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: appData.conflict.surveyData.labels,
+                    datasets: [{
+                        data: appData.conflict.surveyData.data,
+                        backgroundColor: ['rgba(30, 58, 138, 0.8)', 'rgba(209, 213, 219, 0.5)']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
