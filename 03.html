@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독도: 역사와 주권 탐험 (Dokdo Explorer)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Chart container specific styles */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for readability */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+    <!-- Chosen Palette: Korean Heritage (Calm White, Deep Blue, Muted Red) -->
+    <!-- Application Structure Plan: 
+         1. Header: Includes new Home button linking to index.html.
+         2. Navigation: Sticky tab-based navigation. Tab 1 changed from 'Timeline' to 'History Terms'.
+         3. View 1 (History List): REPLACED Timeline with a clean Dictionary-style list (Term - Description) sorted chronologically.
+         4. View 2 (Territory): Focuses on 'Geography' with a Chart.js visualization.
+         5. View 3 (People): 'Figures & Organizations' presented as profile cards.
+         6. View 4 (Data Grid): A comprehensive, searchable table for all glossary terms.
+    -->
+    <!-- Visualization & Content Choices:
+         - History View: Changed from vertical timeline line to stacked cards (List View) -> Goal: Clarity/Reading -> Matches user request for "Dictionary style".
+         - Maritime Zones Chart: Bar Chart (Chart.js) -> Goal: Compare -> Visualizes the vast difference between 12nm (Territorial) and 200nm (EEZ).
+         - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- App State Management -->
+    <script>
+        // Data Store based on dokdo_glossary.md
+        const dokdoData = {
+            geography: [
+                { term: "영토 (Territorial Land)", desc: "국가의 통치권이 미치는 지표상의 범위 (한반도와 부속 도서).", point: "주권의 핵심", value: 1, unit: "지역" },
+                { term: "영해 (Territorial Sea)", desc: "해안선(기선)으로부터 12해리(약 22km)까지의 바다 영역.", point: "배타적 주권 인정", value: 12, unit: "해리" },
+                { term: "영공 (Territorial Airspace)", desc: "영토와 영해의 수직 상공으로, 보통 대기권 이내를 의미.", point: "하늘의 주권", value: 0, unit: "상공" }, // Value 0 for chart exclusion
+                { term: "배타적 경제수역 (EEZ)", desc: "영해 밖 200해리까지의 수역. 자원 탐사·개발의 주권적 권리 보유.", point: "경제적 권리 핵심", value: 200, unit: "해리" },
+                { term: "가스 하이드레이트", desc: "천연가스가 물과 결합해 고체 상태가 된 '불타는 얼음'.", point: "약 6억 톤 매장 추정", value: 600, unit: "억 톤" }
+            ],
+            history: [
+                { year: "삼국시대", term: "우산도 (于山島)", category: "명칭", desc: "우산국(울릉도)에서 유래한 독도의 옛 이름.", point: "가장 오래된 명칭" },
+                { year: "17세기 말", term: "안용복", category: "인물", desc: "일본 막부로부터 울릉도·독도가 조선 땅임을 확인받은 어부.", point: "민간 외교의 승리" },
+                { year: "18세기", term: "가지도 (可支島)", category: "명칭", desc: "강치(가지어)가 많이 살아 붙여진 이름.", point: "자연환경 반영" },
+                { year: "1877", term: "태정관 지령", category: "사료", desc: "일본 최고 행정기관이 '독도는 일본과 무관함'을 공식 인정한 문서.", point: "일본 스스로 인정한 증거" },
+                { year: "1900", term: "대한제국 칙령 제41호", category: "사료", desc: "고종이 독도(석도)를 울도군 관할로 명문화한 법령.", point: "근대적 영토 편입" },
+                { year: "1900", term: "석도 (石島)", category: "명칭", desc: "칙령 제41호에서 사용된 '돌섬'의 한자 표기.", point: "근대 법령상 명칭" },
+                { year: "1946", term: "SCAPIN 제677호", category: "사료", desc: "연합군 최고사령관이 독도를 일본 통치에서 제외한 지령.", point: "국제법적 분리 확인" },
+                { year: "1952", term: "평화선 (이승만 라인)", category: "사료", desc: "한국 정부가 선포한 해양 주권 경계선.", point: "독도 수호 의지 천명" },
+                { year: "1953", term: "독도의용수비대", category: "단체", desc: "일본의 침탈에 맞서 독도를 수호한 민간 대원들.", point: "실효적 지배 강화" },
+                { year: "1981", term: "최종덕", category: "인물", desc: "독도로 주민등록을 이전하여 최초의 독도 주민이 됨.", point: "유인도화 실현" },
+                { year: "2008", term: "독도연구소", category: "단체", desc: "정부 산하 독도 정책 및 학술 연구 기관.", point: "체계적 연구 기반" }
+            ],
+            extra: [
+                { term: "리앙쿠르 (Liancourt)", category: "명칭", desc: "1849년 프랑스 포경선이 붙인 서양식 명칭.", point: "제3국 명칭" }
+            ]
+        };
+
+        let currentTab = 'dashboard';
+
+        function switchTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+            // Remove active state from nav buttons
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-blue-700', 'border-b-2', 'border-blue-700', 'bg-blue-50');
+                el.classList.add('text-slate-500', 'hover:text-slate-700');
+            });
+
+            // Show selected section
+            document.getElementById(tabId).classList.remove('hidden');
+            // Add active state to selected button
+            const activeBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
+                activeBtn.classList.add('text-blue-700', 'border-b-2', 'border-blue-700', 'bg-blue-50');
+            }
+
+            // Trigger chart update if necessary
+            if (tabId === 'geography') {
+                renderGeographyChart();
+            }
+        }
+
+        // Search functionality
+        function filterGlossary() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.glossary-row');
+            
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    </script>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🇰🇷</span>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">독도 핵심 탐험</h1>
+                        <p class="text-xs text-slate-500">역사, 주권, 그리고 사람들</p>
+                    </div>
+                </div>
+                
+                <!-- Right Side: Home Button & Desktop Nav -->
+                <div class="flex items-center space-x-4">
+                    <!-- Desktop Nav -->
+                    <nav class="hidden md:flex space-x-1">
+                        <button onclick="switchTab('dashboard')" class="nav-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors text-blue-700 border-b-2 border-blue-700 bg-blue-50">
+                            역사 용어
+                        </button>
+                        <button onclick="switchTab('geography')" class="nav-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                            영역 및 지리
+                        </button>
+                        <button onclick="switchTab('people')" class="nav-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                            인물과 단체
+                        </button>
+                        <button onclick="switchTab('glossary')" class="nav-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                            전체 용어 사전
+                        </button>
+                    </nav>
+
+                    <!-- Home Button (New) -->
+                    <a href="index.html" class="flex items-center px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                        <span class="mr-1">🏠</span> <span class="hidden sm:inline">홈으로</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Mobile Nav (Simple horizontal scroll) -->
+            <nav class="md:hidden flex space-x-4 overflow-x-auto pb-2 scrollbar-hide px-4 pt-2">
+                 <button onclick="switchTab('dashboard')" class="nav-btn whitespace-nowrap px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-700">역사</button>
+                 <button onclick="switchTab('geography')" class="nav-btn whitespace-nowrap px-3 py-1 text-sm font-medium rounded-full bg-slate-100 text-slate-600">지리</button>
+                 <button onclick="switchTab('people')" class="nav-btn whitespace-nowrap px-3 py-1 text-sm font-medium rounded-full bg-slate-100 text-slate-600">인물</button>
+                 <button onclick="switchTab('glossary')" class="nav-btn whitespace-nowrap px-3 py-1 text-sm font-medium rounded-full bg-slate-100 text-slate-600">사전</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+
+        <!-- VIEW 1: HISTORY DICTIONARY (Replaces Timeline) -->
+        <section id="dashboard" class="content-section animate-fade-in">
+            <div class="mb-8 text-center max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-slate-900 mb-3">독도 역사 용어 사전</h2>
+                <p class="text-slate-600">
+                    삼국시대부터 현대까지, 독도와 관련된 주요 <strong>명칭</strong>과 <strong>사건</strong>을 알기 쉽게 용어와 설명으로 정리했습니다.
+                </p>
+            </div>
+
+            <!-- List/Dictionary View Container -->
+            <div id="history-list-container" class="grid gap-4 md:grid-cols-2">
+                <!-- Javascript will populate this with card-style list items -->
+            </div>
+        </section>
+
+        <!-- VIEW 2: GEOGRAPHY (Maritime Zones) -->
+        <section id="geography" class="content-section hidden">
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 mb-4">영역과 가치</h2>
+                    <p class="text-slate-600 mb-6">
+                        독도는 단순한 섬이 아닙니다. <strong>영해(12해리)</strong>와 <strong>배타적 경제수역(200해리)</strong>을 결정짓는 기점이며, 막대한 양의 <strong>가스 하이드레이트</strong>가 매장된 자원의 보고입니다.
+                    </p>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+                        <h3 class="font-bold text-lg mb-4 flex items-center">
+                            <span class="bg-blue-100 text-blue-700 p-1 rounded mr-2 text-sm">💡</span>
+                            해양 영역 비교 (해리)
+                        </h3>
+                        <p class="text-sm text-slate-500 mb-4">영해(주권)와 EEZ(경제권)의 범위 차이를 비교해보세요.</p>
+                        <!-- Chart Container -->
+                        <div class="chart-container">
+                            <canvas id="geoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-indigo-50 rounded-xl p-6 border border-indigo-100">
+                        <h3 class="font-bold text-indigo-900 text-lg mb-2">💎 불타는 얼음: 가스 하이드레이트</h3>
+                        <div class="flex items-center justify-between">
+                            <div class="text-4xl font-extrabold text-indigo-600">6억 <span class="text-xl font-medium text-indigo-400">톤</span></div>
+                            <div class="text-right text-sm text-indigo-800">
+                                독도 인근 매장 추정량<br>
+                                차세대 청정 에너지원
+                            </div>
+                        </div>
+                        <div class="mt-4 h-2 bg-indigo-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-500 w-3/4 animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
+                        <!-- Definition List -->
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Territory</span>
+                            <h4 class="font-bold text-slate-800">영토 (Territorial Land)</h4>
+                            <p class="text-sm text-slate-600 mt-1">국가의 통치권이 미치는 지표상의 범위. 한반도와 부속 도서를 포함합니다.</p>
+                        </div>
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sky</span>
+                            <h4 class="font-bold text-slate-800">영공 (Territorial Airspace)</h4>
+                            <p class="text-sm text-slate-600 mt-1">영토와 영해의 수직 상공. 일반적으로 대기권 이내를 의미합니다.</p>
+                        </div>
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sea</span>
+                            <h4 class="font-bold text-slate-800">영해 (Territorial Sea)</h4>
+                            <p class="text-sm text-slate-600 mt-1">기선으로부터 12해리(약 22km). 국가의 완전한 주권이 미치는 바다입니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: PEOPLE (Cards) -->
+        <section id="people" class="content-section hidden">
+            <div class="mb-8 text-center">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">독도를 지킨 사람들</h2>
+                <p class="text-slate-600">조선시대부터 현대까지 독도를 지키고 관리해 온 인물과 단체들입니다.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="people-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- VIEW 4: GLOSSARY (Table) -->
+        <section id="glossary" class="content-section hidden">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">전체 용어 사전</h2>
+                    <p class="text-sm text-slate-500">독도 관련 핵심 용어를 검색하고 확인하세요.</p>
+                </div>
+                <div class="mt-4 md:mt-0 relative">
+                    <input type="text" id="searchInput" onkeyup="filterGlossary()" placeholder="용어 검색..." 
+                           class="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full md:w-64">
+                    <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-sm rounded-lg border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/4">용어</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/2">설명</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">핵심 포인트</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200" id="glossary-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="mb-2">🇰🇷 독도는 대한민국의 고유 영토입니다.</p>
+            <p class="text-xs text-slate-600">Source: 독도 핵심 용어 사전 (dokdo_glossary.md)</p>
+        </div>
+    </footer>
+
+    <!-- Core Logic -->
+    <script>
+        // 1. Populate History List (Replaces Timeline)
+        const historyContainer = document.getElementById('history-list-container');
+        
+        dokdoData.history.forEach((item, index) => {
+            const badgeColor = item.category === '명칭' ? 'bg-amber-100 text-amber-800' : 
+                               item.category === '사료' ? 'bg-blue-100 text-blue-800' : 
+                               item.category === '인물' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+
+            // New "Dictionary Card" Layout
+            const html = `
+                <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow hover:border-blue-200 flex flex-col justify-between h-full">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded ${badgeColor}">${item.category}</span>
+                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">${item.year}</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">${item.term}</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">${item.desc}</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center text-blue-600 text-xs font-medium">
+                        <span class="mr-1">✨</span> ${item.point}
+                    </div>
+                </div>
+            `;
+            historyContainer.insertAdjacentHTML('beforeend', html);
+        });
+
+        // 2. Populate People Cards
+        const peopleContainer = document.getElementById('people-grid');
+        const peopleData = dokdoData.history.filter(d => d.category === '인물' || d.category === '단체');
+        
+        peopleData.forEach(p => {
+            const icon = p.category === '인물' ? '👤' : '🏢';
+            const html = `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center hover:scale-105 transition-transform duration-200">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-3xl mb-4">
+                        ${icon}
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">${p.term}</h3>
+                    <span class="text-xs text-slate-500 mb-3">${p.year}</span>
+                    <p class="text-sm text-slate-600 mb-4 line-clamp-3">${p.desc}</p>
+                    <div class="mt-auto pt-4 border-t border-slate-100 w-full">
+                        <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">${p.point}</span>
+                    </div>
+                </div>
+            `;
+            peopleContainer.insertAdjacentHTML('beforeend', html);
+        });
+
+        // 3. Populate Glossary Table
+        const tbody = document.getElementById('glossary-tbody');
+        const allData = [...dokdoData.geography, ...dokdoData.history, ...dokdoData.extra];
+        // Sort alphabetically by term
+        allData.sort((a, b) => a.term.localeCompare(b.term));
+
+        allData.forEach(item => {
+            const row = `
+                <tr class="glossary-row hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-slate-900">${item.term}</div>
+                        ${item.category ? `<div class="text-xs text-slate-400">${item.category}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-slate-600">${item.desc}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
+                            ${item.point}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+
+        // 4. Initialize Chart (Geography)
+        let chartInstance = null;
+
+        function renderGeographyChart() {
+            if (chartInstance) return; // Prevent re-rendering
+
+            const ctx = document.getElementById('geoChart').getContext('2d');
+            const dataValues = dokdoData.geography
+                .filter(d => d.value > 0 && d.term !== "가스 하이드레이트") // Exclude Gas Hydrate due to scale diff
+                .map(d => d.value);
+            const labels = dokdoData.geography
+                .filter(d => d.value > 0 && d.term !== "가스 하이드레이트")
+                .map(d => d.term.split(' (')[0]); // Shorten label
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '해양 영역 범위 (해리)',
+                        data: dataValues,
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)', // Blue for Sea
+                            'rgba(99, 102, 241, 0.4)', // Light Indigo for EEZ
+                        ],
+                        borderColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(99, 102, 241)',
+                        ],
+                        borderWidth: 1,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Horizontal bar chart for better scale comparison
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x + ' 해리';
+                                    }
+                                    return label;
+                                },
+                                footer: function(tooltipItems) {
+                                    // Add contextual info from data
+                                    const index = tooltipItems[0].dataIndex;
+                                    const originalData = dokdoData.geography.filter(d => d.value > 0 && d.term !== "가스 하이드레이트")[index];
+                                    return originalData ? originalData.desc : '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '거리 (해리)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
