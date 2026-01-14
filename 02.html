@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독도 역사 인터랙티브 연표</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Fonts: Gaegu (Cute/Round), Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sea-blue: #0ea5e9;
+            --deep-sea: #0369a1;
+            --soft-sky: #e0f2fe;
+        }
+
+        /* 폰트 적용: Gaegu 폰트를 제목과 주요 UI에 적용 */
+        .font-cute {
+            font-family: 'Gaegu', cursive;
+            font-weight: 700;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(180deg, var(--soft-sky) 0%, #ffffff 100%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* 바다 물결 애니메이션 배경 */
+        .ocean-waves {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: url('https://www.transparenttextures.com/patterns/waves.png');
+            opacity: 0.1;
+            z-index: -1;
+            animation: waveMove 20s linear infinite;
+        }
+
+        @keyframes waveMove {
+            from { background-position: 0 0; }
+            to { background-position: 1000px 0; }
+        }
+
+        /* 독도 실루엣 (CSS로 구현) */
+        .dokdo-island {
+            position: fixed;
+            bottom: 20px;
+            right: 5%;
+            width: 400px;
+            height: 120px;
+            background: linear-gradient(to top, #444, #777);
+            clip-path: polygon(10% 100%, 30% 40%, 45% 70%, 60% 20%, 80% 60%, 95% 100%);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        /* 연도별 인터렉티브 타임라인 커스텀 스타일 */
+        .timeline-container {
+            position: relative;
+            padding-left: 2rem;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, var(--sea-blue), var(--soft-sky));
+            border-radius: 2px;
+        }
+
+        .event-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .event-card:hover {
+            transform: scale(1.02);
+            border-color: var(--sea-blue);
+            background-color: white;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        }
+        .event-card.active {
+            border-color: var(--deep-sea);
+            background-color: white;
+            box-shadow: 0 10px 30px -5px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Chart Styling */
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        /* 스크롤바 디자인 */
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--sea-blue); border-radius: 10px; }
+
+        /* 홈 버튼 전용 스타일 */
+        .home-link {
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .home-link:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+    </style>
+</head>
+<body class="text-stone-800 antialiased">
+
+    <div class="ocean-waves"></div>
+    <div class="dokdo-island"></div>
+
+    <div class="max-w-6xl mx-auto px-6 py-8 min-h-screen flex flex-col relative">
+
+        <!-- Home Button (Top Right) - Links to index.html -->
+        <div class="absolute top-8 right-6">
+            <a href="index.html" class="home-link font-cute flex items-center gap-2 bg-white px-6 py-3 rounded-full text-xl text-sky-700 shadow-md border-2 border-sky-100 hover:bg-sky-50">
+                <span>🏠</span> 홈으로
+            </a>
+        </div>
+
+        <!-- Header -->
+        <header class="mb-16 text-center pt-10">
+            <div class="inline-block px-5 py-2 bg-sky-500 text-white rounded-full text-sm font-bold mb-6 shadow-lg transform hover:rotate-2 transition-transform cursor-default">
+                🇰🇷 동해의 아름다운 우리 땅
+            </div>
+            <h1 class="text-6xl md:text-8xl text-sky-900 font-cute mb-6 drop-shadow-sm">독도 역사 나들이</h1>
+            <p class="text-xl text-stone-600 max-w-2xl mx-auto leading-relaxed font-medium">
+                귀여운 연표와 함께 떠나는 독도 시간 여행!<br>
+                연도를 클릭해서 독도의 소중한 기록들을 만나보세요.
+            </p>
+        </header>
+
+        <!-- Interactive Summary Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+            <div class="lg:col-span-4 flex flex-col justify-center space-y-6">
+                <div class="bg-white/90 backdrop-blur p-8 rounded-[2rem] shadow-sm border-2 border-sky-100">
+                    <h2 class="text-3xl font-cute text-sky-800 mb-4">어느 시대가 궁금하세요?</h2>
+                    <p class="text-stone-500 mb-6">오른쪽 그래프의 기둥을 누르면 해당 시대의 연표로 빠르게 이동합니다.</p>
+                    <div id="eraNav" class="grid grid-cols-2 gap-3">
+                        <!-- JS로 버튼 생성 -->
+                    </div>
+                </div>
+            </div>
+            <div class="lg:col-span-8 bg-white/80 backdrop-blur p-8 rounded-[2rem] shadow-sm border-2 border-white flex flex-col justify-center">
+                <div class="chart-wrapper">
+                    <canvas id="historyChart"></canvas>
+                </div>
+                <p class="text-center text-xs text-stone-400 mt-4 font-bold">* 차트의 막대를 클릭하면 해당 시대로 필터링됩니다.</p>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            
+            <!-- Left: Timeline (Year-by-Year) -->
+            <div class="lg:col-span-7">
+                <div class="flex items-center justify-between mb-8 px-4">
+                    <h2 class="text-3xl font-cute text-stone-800">🕰️ 연도별 기록</h2>
+                    <button onclick="resetFilter()" class="text-xs font-bold text-sky-600 hover:underline">전체 보기</button>
+                </div>
+                
+                <div class="timeline-container">
+                    <div class="timeline-line"></div>
+                    <div id="timelineContent" class="space-y-6 max-h-[800px] overflow-y-auto pr-4 custom-scroll">
+                        <!-- Events injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Detailed Viewer -->
+            <div class="lg:col-span-5 sticky top-10">
+                <div id="detailCard" class="bg-gradient-to-br from-sky-500 to-deep-sea text-white rounded-[2.5rem] p-10 shadow-2xl min-h-[400px] flex flex-col justify-center transform transition-all duration-500">
+                    <div id="detailViewDefault">
+                        <div class="text-6xl mb-6">🐳</div>
+                        <h3 class="text-4xl font-cute mb-4">파도를 따라<br>기록을 확인해요!</h3>
+                        <p class="text-sky-100 text-lg leading-relaxed">왼쪽 연표에서 관심 있는 연도의 사건을 클릭해보세요. 상세한 이야기가 이곳에 나타납니다.</p>
+                    </div>
+                    <div id="detailViewActive" class="hidden animate-in fade-in slide-in-from-right-10">
+                        <!-- Active content here -->
+                    </div>
+                </div>
+                
+                <!-- Quick Tips -->
+                <div class="mt-8 bg-amber-50 rounded-3xl p-6 border-2 border-amber-100">
+                    <h4 class="font-cute text-amber-800 text-xl mb-2">💡 알고 계셨나요?</h4>
+                    <p class="text-amber-700 text-sm leading-relaxed">독도는 지질학적으로 울릉도보다 200만 년이나 더 일찍 태어난 '형님' 섬이랍니다!</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-24 py-12 text-center">
+            <div class="flex justify-center gap-4 mb-6">
+                <div class="w-12 h-12 bg-sky-200 rounded-full flex items-center justify-center text-2xl">🌊</div>
+                <div class="w-12 h-12 bg-sky-300 rounded-full flex items-center justify-center text-2xl">🐚</div>
+                <div class="w-12 h-12 bg-sky-400 rounded-full flex items-center justify-center text-2xl">🦀</div>
+            </div>
+            <p class="text-stone-400 font-bold font-cute text-xl">우리 땅 독도의 역사는 오늘도 계속됩니다.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const dokdoData = [
+            { id: 't1', year: 'Ancient', date: '약 460~250만년 전', title: '독도의 탄생', desc: '해저 화산 활동으로 인해 울릉도나 제주도보다 훨씬 앞서 형성되었습니다. 동해의 가장 오래된 섬이죠!', era: '고대', icon: '🌋' },
+            { id: 't2', year: '1454', date: '1454년', title: '세종실록지리지', desc: '"우산(독도)과 무릉(울릉도) 두 섬이 서로 멀리 떨어져 있지 않아 날씨가 맑으면 바라볼 수 있다"고 기록되었습니다.', era: '조선', icon: '📖' },
+            { id: 't3', year: '1481', date: '1481년', title: '팔도총도 제작', desc: '조선 전기의 지도인 팔도총도에 독도가 우리 영토로 명확히 표기되었습니다.', era: '조선', icon: '🗺️' },
+            { id: 't4', year: '1667', date: '1667년', title: '은주시청합기 (일본)', desc: '일본 오키섬의 관리가 독도와 울릉도는 조선의 땅이고 일본의 경계는 오키섬까지라고 기록했습니다.', era: '조선', icon: '✍️' },
+            { id: 't5', year: '1693', date: '1693년', title: '안용복의 활약', desc: '안용복 선생이 일본에 직접 건너가 독도가 조선 땅임을 확약받고 돌아온 용기 있는 사건입니다.', era: '조선', icon: '⚓' },
+            { id: 't6', year: '1696', date: '1696년', title: '도해 금지령', desc: '일본 에도 막부가 자국 어민들의 울릉도와 독도 출입을 공식적으로 금지했습니다.', era: '조선', icon: '🚫' },
+            { id: 't7', year: '1877', date: '1877년', title: '태정관 지령', desc: '일본 최고 국가기관이 "독도는 일본과 관계가 없다"는 것을 공식적으로 지시했습니다.', era: '조선', icon: '📜' },
+            { id: 't8', year: '1900', date: '1900년 10월 25일', title: '대한제국 칙령 제41호', desc: '고종 황제가 독도를 울도군의 관할 구역으로 명문화하여 영유권을 선포했습니다.', era: '대한제국', icon: '👑' },
+            { id: 't9', year: '1905', date: '1905년', title: '시마네현 고시', desc: '일본이 러일전쟁 중 불법적으로 독도를 자기네 땅이라 주장하며 고시했습니다.', era: '대한제국', icon: '⚠️' },
+            { id: 't10', year: '1906', date: '1906년', title: '심흥택 군수의 보고', desc: '울릉군수 심흥택이 "본군 소속 독도"라며 일본의 침탈 시도를 중앙 정부에 즉각 보고했습니다.', era: '대한제국', icon: '📣' },
+            { id: 't11', year: '1946', date: '1946년 1월', title: 'SCAPIN 제677호', desc: '연합군 최고사령부가 독도를 일본의 통치 범위에서 완전히 제외시켰습니다.', era: '광복', icon: '🕊️' },
+            { id: 't12', year: '1951', date: '1951년', title: '평화선 선포', desc: '대한민국 정부가 평화선을 선포하며 독도가 우리 주권의 범위임을 재확인했습니다.', era: '광복', icon: '🌊' },
+            { id: 't13', year: '1953', date: '1953년', title: '독도의용수비대 활동', desc: '민간인들이 자발적으로 독도를 지키기 위해 활동을 시작했습니다.', era: '광복', icon: '🛡️' },
+            { id: 't14', year: '1954', date: '1954년', title: '독도 등대 점등', desc: '우리나라가 독도에 등대를 설치하여 항해하는 배들에게 길을 안내하기 시작했습니다.', era: '광복', icon: '💡' },
+            { id: 't15', year: '1981', date: '1981년', title: '최초 주민등록', desc: '최종덕 씨가 독도로 주민등록을 이전하며 최초의 독도 주민이 되었습니다.', era: '현대', icon: '🏠' },
+            { id: 't16', year: '2005', date: '2005년', title: '독도 개방', desc: '일반 국민들이 독도에 자유롭게 방문하여 우리 땅을 직접 밟아볼 수 있게 되었습니다.', era: '현대', icon: '🚢' },
+            { id: 't17', year: '2020', date: '현재', title: '실효적 지배 지속', desc: '독도경비대와 독도등대 관리원 등 우리 국민들이 독도를 당당히 지키고 있습니다.', era: '현대', icon: '🇰🇷' }
+        ];
+
+        const eraColors = {
+            '고대': '#94a3b8',
+            '조선': '#f59e0b',
+            '대한제국': '#ef4444',
+            '광복': '#0ea5e9',
+            '현대': '#6366f1'
+        };
+
+        let currentFilter = '전체';
+        let chart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            const eras = ['고대', '조선', '대한제국', '광복', '현대'];
+            const data = eras.map(e => dokdoData.filter(d => d.era === e).length);
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: eras,
+                    datasets: [{
+                        label: '기록 수',
+                        data: data,
+                        backgroundColor: Object.values(eraColors),
+                        borderRadius: 15,
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            applyFilter(eras[index]);
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Gaegu', size: 24 },
+                            bodyFont: { family: 'Noto Sans KR', size: 14 },
+                            callbacks: {
+                                label: (c) => ` ${c.raw}개의 역사적 기록이 있어요!`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, display: false },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { 
+                                font: { family: 'Gaegu', size: 22, weight: 'bold' },
+                                color: '#475569'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderEraNav() {
+            const container = document.getElementById('eraNav');
+            const eras = ['조선', '대한제국', '광복', '현대'];
+            container.innerHTML = eras.map(era => `
+                <button onclick="applyFilter('${era}')" class="font-cute px-4 py-2 bg-white border-2 border-sky-100 rounded-2xl text-xl text-sky-800 hover:bg-sky-50 transition-colors shadow-sm">
+                    # ${era}
+                </button>
+            `).join('');
+        }
+
+        function applyFilter(era) {
+            currentFilter = era;
+            renderTimeline();
+            document.getElementById('timelineContent').scrollTop = 0;
+        }
+
+        function resetFilter() {
+            currentFilter = '전체';
+            renderTimeline();
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContent');
+            const filtered = currentFilter === '전체' ? dokdoData : dokdoData.filter(d => d.era === currentFilter);
+            
+            container.innerHTML = filtered.map(item => `
+                <div class="event-card bg-white/60 backdrop-blur p-5 rounded-3xl mb-4" onclick="showDetail('${item.id}')" id="card-${item.id}">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center text-3xl shadow-inner">
+                            ${item.icon}
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-sky-600 mb-0.5">${item.date}</div>
+                            <h4 class="font-cute text-2xl text-stone-800">${item.title}</h4>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showDefaultDetail() {
+            document.getElementById('detailViewDefault').classList.remove('hidden');
+            document.getElementById('detailViewActive').classList.add('hidden');
+            document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
+        }
+
+        function showDetail(id) {
+            const item = dokdoData.find(d => d.id === id);
+            const defaultView = document.getElementById('detailViewDefault');
+            const activeView = document.getElementById('detailViewActive');
+            
+            document.querySelectorAll('.event-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`card-${id}`)?.classList.add('active');
+
+            defaultView.classList.add('hidden');
+            activeView.classList.remove('hidden');
+
+            activeView.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <span class="px-4 py-1 bg-white/20 rounded-full text-xs font-bold">${item.era}</span>
+                        <span class="text-sky-200 text-sm font-bold">${item.date}</span>
+                    </div>
+                    <h3 class="text-5xl font-cute leading-tight">${item.title}</h3>
+                    <div class="bg-white/10 rounded-[2rem] p-6 border border-white/20">
+                        <p class="text-xl leading-relaxed text-white">${item.desc}</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-sky-200">
+                        <span class="text-3xl">${item.icon}</span>
+                        <span class="text-sm font-bold">기록 번호 #${item.id}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.onload = () => {
+            initChart();
+            renderEraNav();
+            renderTimeline();
+            // 기본 선택
+            setTimeout(() => showDetail('t8'), 300);
+        };
+    </script>
+</body>
+</html>
